@@ -58,23 +58,22 @@ async function connectDB() {
     );
   }
 
-    const { MongoMemoryServer } = require('mongodb-memory-server');
-    if (!cachedMemoryServer) {
-      cachedMemoryServer = await MongoMemoryServer.create({
-        instance: { dbName: 'vaulttrace_db' },
-      });
-      global.__vaulttrace_mongo_memory = cachedMemoryServer;
-    }
-
-    const memoryUri = cachedMemoryServer.getUri();
-    const conn = await mongoose.connect(memoryUri, { dbName: 'vaulttrace_db' });
-    cachedConnection = conn;
-    activeDbMode = 'Embedded MongoDB Engine (Offline Fallback)';
-    global.__vaulttrace_mongo_conn = cachedConnection;
-    global.__vaulttrace_db_mode = activeDbMode;
-    console.log(`[VaultTrace DB] Connected to ${activeDbMode}`);
-    return { connection: conn, mode: activeDbMode };
+  const { MongoMemoryServer } = require('mongodb-memory-server');
+  if (!cachedMemoryServer) {
+    cachedMemoryServer = await MongoMemoryServer.create({
+      instance: { dbName: 'vaulttrace_db' },
+    });
+    global.__vaulttrace_mongo_memory = cachedMemoryServer;
   }
+
+  const memoryUri = cachedMemoryServer.getUri();
+  const conn = await mongoose.connect(memoryUri, { dbName: 'vaulttrace_db' });
+  cachedConnection = conn;
+  activeDbMode = 'Embedded MongoDB Engine (Offline Fallback)';
+  global.__vaulttrace_mongo_conn = cachedConnection;
+  global.__vaulttrace_db_mode = activeDbMode;
+  console.log(`[VaultTrace DB] Connected to ${activeDbMode}`);
+  return { connection: conn, mode: activeDbMode };
 }
 
 function getDbMode() {
