@@ -7,12 +7,17 @@ const router = express.Router();
 // GET /api/notifications — Current user's notifications + unread count
 router.get('/', authenticate, async (req, res, next) => {
   try {
+    const baseFilter =
+      req.user.role === 'admin'
+        ? { recipientId: req.user._id }
+        : { recipientId: req.user._id, type: { $ne: 'CLAIM_SUBMITTED' } };
+
     const [notifications, unreadCount] = await Promise.all([
-      Notification.find({ recipientId: req.user._id })
+      Notification.find(baseFilter)
         .sort({ readAt: 1, createdAt: -1 })
         .limit(50)
         .lean(),
-      Notification.countDocuments({ recipientId: req.user._id, readAt: null }),
+      Notification.countDocuments({ ...baseFilter, readAt: null }),
     ]);
 
     return res.json({

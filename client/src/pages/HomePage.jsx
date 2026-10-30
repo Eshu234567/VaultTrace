@@ -64,8 +64,10 @@ export default function HomePage() {
     loadFoundItems();
   }, [loadFoundItems]);
 
-  const storedCount = items.filter((i) => i.status === 'Stored').length;
-  const claimPendingCount = items.filter((i) => i.status === 'Claim Pending').length;
+  const storedCount = items.filter((i) =>
+    ['Stored', 'Claim Pending'].includes(i.status)
+  ).length;
+  const activeZonesCount = new Set(items.map((i) => i.foundLocation).filter(Boolean)).size;
 
   return (
     <div className="space-y-8">
@@ -167,8 +169,8 @@ export default function HomePage() {
 
             <div className="bg-[#E4E2DA] rounded-2xl p-4 flex items-center justify-between">
               <div>
-                <div className="text-xs font-medium text-[#525B54]">Claims in Progress</div>
-                <div className="text-2xl font-bold text-[#1F2621] mt-0.5">{claimPendingCount}</div>
+                <div className="text-xs font-medium text-[#525B54]">Campus Zones Covered</div>
+                <div className="text-2xl font-bold text-[#1F2621] mt-0.5">{activeZonesCount}</div>
               </div>
               <div className="w-12 h-12 rounded-full border-4 border-[#2C372F]/20 flex items-center justify-center text-xs font-bold text-[#2C372F]">
                 Live
@@ -289,7 +291,12 @@ export default function HomePage() {
                       )}
                     </div>
                     <div className="absolute top-3 right-3">
-                      <StatusChip status={item.status} size="xs" />
+                      <StatusChip
+                        status={
+                          !isAdmin && item.status === 'Claim Pending' ? 'Stored' : item.status
+                        }
+                        size="xs"
+                      />
                     </div>
                   </div>
 
@@ -384,7 +391,10 @@ export default function HomePage() {
           metadata={[
             { label: 'Found Location', value: qrModalItem.foundLocation },
             { label: 'Found Date', value: new Date(qrModalItem.foundAt).toLocaleDateString() },
-            { label: 'Status', value: qrModalItem.status },
+            {
+              label: 'Status',
+              value: !isAdmin && qrModalItem.status === 'Claim Pending' ? 'Stored' : qrModalItem.status,
+            },
             { label: 'Retention Class', value: qrModalItem.retentionClass },
             {
               label: 'Storage Bin',

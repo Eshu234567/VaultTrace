@@ -121,7 +121,7 @@ export default function NotificationsPage() {
                         to="/my-activity"
                         className="text-xs font-semibold text-[#1F2621] underline underline-offset-4"
                       >
-                        Open Reports and Claims
+                        Open Claim Inventory
                       </Link>
                       {isUnread && (
                         <button

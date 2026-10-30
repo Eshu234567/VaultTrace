@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  FileText,
-  Sparkles,
+  Search,
   ShieldCheck,
+  MapPin,
+  Calendar,
   QrCode,
-  Archive,
-  Send,
+  Lock,
 } from 'lucide-react';
 import { apiRequest } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -13,346 +13,279 @@ import StatusChip from '../components/StatusChip';
 import ClaimModal from '../components/ClaimModal';
 import QRTagModal from '../components/QRTagModal';
 
-const REPORT_TABS = ['All', 'Active', 'Possible Match', 'Claim Pending', 'Resolved'];
+const CATEGORIES = [
+  'All',
+  'Electronics',
+  'ID / Smart Card',
+  'Calculator / Lab Gear',
+  'Bottle / Flask',
+  'Wallet / Purse',
+  'Keys / Keychain',
+  'Stationery',
+  'Bag / Backpack',
+  'Spectacles / Eyewear',
+  'Books / Notes',
+  'Other',
+];
 
 export default function MyActivityPage() {
-  const { showToast } = useAuth();
-  const [reports, setReports] = useState([]);
-  const [claims, setClaims] = useState([]);
-  const [reportTab, setReportTab] = useState('All');
+  const { isAdmin, locations, showToast } = useAuth();
+  const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [category, setCategory] = useState('All');
+  const [locationFilter, setLocationFilter] = useState('All');
 
-  const [claimModalContext, setClaimModalContext] = useState(null);
-  const [handoverQrClaim, setHandoverQrClaim] = useState(null);
-  const [moreInfoAnswer, setMoreInfoAnswer] = useState({});
+  const [selectedItemForClaim, setSelectedItemForClaim] = useState(null);
+  const [qrModalItem, setQrModalItem] = useState(null);
 
-  const loadData = useCallback(async () => {
+  const loadClaimableItems = useCallback(async () => {
     setLoading(true);
     try {
-      const [repRes, clmRes] = await Promise.all([
-        apiRequest(`/lost-reports/mine?status=${encodeURIComponent(reportTab)}`),
-        apiRequest('/claims/mine'),
-      ]);
-      setReports(repRes.data || []);
-      setClaims(clmRes.data || []);
+      const params = new URLSearchParams();
+      if (category !== 'All') params.set('category', category);
+      if (locationFilter !== 'All') params.set('location', locationFilter);
+      if (search.trim()) params.set('search', search.trim());
+
+      const res = await apiRequest(`/found-items?${params.toString()}`);
+      const allItems = res.data || [];
+      // Only show items in the vault that have NOT yet been approved/returned/disposed
+      const unclaimedItems = allItems.filter((item) =>
+        ['Stored', 'Claim Pending'].includes(item.status)
+      );
+      setItems(unclaimedItems);
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
     }
-  }, [reportTab]);
+  }, [category, locationFilter, search]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  const handleArchiveReport = async (reportId) => {
-    try {
-      await apiRequest(`/lost-reports/${reportId}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ isArchived: true }),
-      });
-      showToast('Report archived');
-      loadData();
-    } catch (err) {
-      showToast(err.message, 'error');
-    }
-  };
-
-  const handleRespondMoreInfo = async (claimId) => {
-    const text = moreInfoAnswer[claimId];
-    if (!text || !text.trim()) return;
-    try {
-      await apiRequest(`/claims/${claimId}/respond`, {
-        method: 'PATCH',
-        body: JSON.stringify({ additionalContext: text.trim() }),
-      });
-      showToast('Additional proof submitted to administrator');
-      loadData();
-    } catch (err) {
-      showToast(err.message, 'error');
-    }
-  };
+    loadClaimableItems();
+  }, [loadClaimableItems]);
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-[#1F2621]">
-          Lost Reports, Matches and Claims
-        </h1>
-        <p className="text-xs text-[#606861]">
-          Track active lost item reports, review candidate matches, and view claim verification decisions.
-        </p>
-      </div>
-
-      {/* Lost Reports Section */}
-      <section className="space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-lg font-bold text-[#1F2621] flex items-center gap-2">
-            <FileText className="w-5 h-5 text-[#2C372F]" />
-            <span>Lost Item Reports</span>
-          </h2>
-
-          <div className="flex flex-wrap gap-1.5">
-            {REPORT_TABS.map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setReportTab(tab)}
-                className={`px-4 py-1.5 rounded-full text-xs font-semibold transition border ${
-                  reportTab === tab
-                    ? 'bg-[#2C372F] text-[#F7F6F2] border-[#2C372F]'
-                    : 'bg-[#ECEAE3] text-[#4A544C] border-[#DFDDD4] hover:bg-[#E2E0D6]'
-                }`}
-              >
-                {tab}
-              </button>
-            ))}
-          </div>
+    <div className="space-y-6">
+      {/* Header Banner */}
+      <div className="bg-[#ECEAE3] rounded-[28px] border border-[#DFDDD4] p-6 sm:p-8 flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+        <div className="space-y-2 max-w-2xl">
+          <span className="inline-block px-3 py-1 rounded-full bg-[#DDE2DC] text-[#2C372F] text-xs font-semibold">
+            Vault Custody Verification
+          </span>
+          <h1 className="text-2xl font-bold text-[#1F2621]">
+            Items Available to Claim ({items.length})
+          </h1>
+          <p className="text-xs text-[#606861] leading-relaxed">
+            Browse all items currently held in the campus vault that are yet to be approved or claimed. To protect student privacy and prevent impersonation, claim submissions are confidential and require your Full Name, USN, and hidden ownership proof.
+          </p>
         </div>
 
-        {loading ? (
-          <div className="h-32 bg-[#ECEAE3] rounded-[24px] border border-[#DFDDD4] animate-pulse p-6" />
-        ) : reports.length === 0 ? (
-          <div className="bg-[#ECEAE3] rounded-[24px] border border-[#DFDDD4] p-8 text-center text-xs text-[#606861]">
-            No lost reports found under {reportTab}.
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {reports.map((rep) => (
-              <div
-                key={rep._id}
-                className="bg-[#ECEAE3] rounded-[24px] border border-[#DFDDD4] p-6 space-y-4"
-              >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#DFDDD4] pb-3">
-                  <div className="flex items-center gap-2.5">
-                    <span className="font-mono text-xs font-semibold px-3 py-1 rounded-full bg-[#2C372F] text-[#F7F6F2]">
-                      {rep.reportCode}
-                    </span>
-                    <h3 className="font-bold text-base text-[#1F2621]">{rep.itemName}</h3>
-                    <StatusChip status={rep.status} size="xs" />
-                  </div>
-                  <div className="flex items-center gap-3 text-xs text-[#606861]">
-                    <span>Location: <strong className="text-[#1F2621]">{rep.lastSeen?.location}</strong></span>
-                    <span>{new Date(rep.lastSeen?.date).toLocaleDateString()}</span>
-                    {rep.status !== 'Resolved' && (
-                      <button
-                        onClick={() => handleArchiveReport(rep._id)}
-                        className="text-[#687069] hover:text-[#693B34] p-1 rounded"
-                        title="Archive report"
-                      >
-                        <Archive className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-                </div>
+        <div className="bg-[#F7F6F2] border border-[#DFDDD4] rounded-2xl p-4 flex items-center gap-3 max-w-xs shrink-0">
+          <Lock className="w-4 h-4 text-[#2C372F] shrink-0" />
+          <p className="text-[11px] text-[#58605A] leading-snug">
+            Submitted claims are visible only to the Vault Administrator during verification.
+          </p>
+        </div>
+      </div>
 
-                <p className="text-xs text-[#58605A]">{rep.description}</p>
+      {/* Search and Location Filter */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div className="relative flex-1">
+          <Search className="w-4 h-4 text-[#687069] absolute left-4 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search unclaimed items by name, brand, colour, or item code..."
+            className="w-full pl-11 pr-4 py-3 rounded-full bg-[#FBFBF9] border border-[#D8D6CC] text-[#1F2621] placeholder:text-[#858C86] text-xs focus:outline-none focus:border-[#2C372F]"
+          />
+        </div>
 
-                {rep.candidateMatches?.length > 0 && (
-                  <div className="bg-[#F7F6F2] rounded-2xl border border-[#DFDDD4] p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-[#1F2621] flex items-center gap-1.5">
-                        <Sparkles className="w-4 h-4 text-[#2C372F]" />
-                        <span>Candidate Matches ({rep.candidateMatches.length})</span>
-                      </span>
-                      <span className="text-[11px] text-[#606861]">
-                        Submit a claim to verify ownership
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {rep.candidateMatches.map((cand) => {
-                        const fItem = cand.foundItem;
-                        if (!fItem) return null;
-                        return (
-                          <div
-                            key={cand._id}
-                            className="bg-[#ECEAE3] rounded-2xl border border-[#DFDDD4] p-4 flex flex-col justify-between gap-3"
-                          >
-                            <div className="space-y-1.5">
-                              <div className="flex items-center justify-between">
-                                <span className="font-mono text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-[#2C372F] text-[#F7F6F2]">
-                                  {fItem.itemCode}
-                                </span>
-                                <span className="text-xs font-bold text-[#233829]">
-                                  {cand.score}% Match ({cand.confidenceBand})
-                                </span>
-                              </div>
-                              <h4 className="font-bold text-[#1F2621] text-sm">{fItem.itemName}</h4>
-                              <p className="text-[11px] text-[#58605A]">
-                                Found at <strong>{fItem.foundLocation}</strong> on{' '}
-                                {new Date(fItem.foundAt).toLocaleDateString()}
-                              </p>
-                              <div className="flex flex-wrap gap-1 pt-1">
-                                {cand.matchedFields?.map((mf, i) => (
-                                  <span
-                                    key={i}
-                                    className="px-2.5 py-0.5 rounded-full bg-[#F7F6F2] text-[#2C372F] text-[10px] font-medium border border-[#DFDDD4]"
-                                  >
-                                    {mf}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-
-                            {['Stored', 'Claim Pending'].includes(fItem.status) && (
-                              <button
-                                onClick={() =>
-                                  setClaimModalContext({ item: fItem, lostReportId: rep._id })
-                                }
-                                className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full bg-[#2C372F] hover:bg-[#1F2621] text-[#F7F6F2] text-xs font-semibold transition"
-                              >
-                                <ShieldCheck className="w-3.5 h-3.5" />
-                                <span>Claim This Item</span>
-                              </button>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
+        <div className="flex items-center gap-2">
+          <MapPin className="w-4 h-4 text-[#606861] shrink-0" />
+          <select
+            value={locationFilter}
+            onChange={(e) => setLocationFilter(e.target.value)}
+            className="w-full sm:w-auto rounded-full border border-[#D5D3C8] bg-[#FBFBF9] px-4 py-3 text-xs font-medium text-[#1F2621] focus:outline-none focus:border-[#2C372F]"
+          >
+            <option value="All">All Campus Locations</option>
+            {locations.map((loc) => (
+              <option key={loc._id} value={loc.name}>
+                {loc.name}
+              </option>
             ))}
-          </div>
-        )}
-      </section>
+          </select>
+        </div>
+      </div>
 
-      {/* Submitted Claims Section */}
-      <section className="space-y-4 pt-4 border-t border-[#DFDDD4]">
-        <h2 className="text-lg font-bold text-[#1F2621] flex items-center gap-2">
-          <ShieldCheck className="w-5 h-5 text-[#2C372F]" />
-          <span>Submitted Ownership Claims ({claims.length})</span>
-        </h2>
+      {/* Category Filter Pills */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1">
+        {CATEGORIES.map((cat) => (
+          <button
+            key={cat}
+            type="button"
+            onClick={() => setCategory(cat)}
+            className={`px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition border ${
+              category === cat
+                ? 'bg-[#2C372F] text-[#F7F6F2] border-[#2C372F]'
+                : 'bg-[#ECEAE3] text-[#4A544C] border-[#DFDDD4] hover:bg-[#E2E0D6]'
+            }`}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
 
-        {claims.length === 0 ? (
-          <div className="bg-[#ECEAE3] rounded-[24px] border border-[#DFDDD4] p-8 text-center text-xs text-[#606861]">
-            No ownership claims submitted yet.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {claims.map((clm) => (
+      {/* Claimable Inventory Grid */}
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3, 4, 5, 6].map((n) => (
+            <div
+              key={n}
+              className="bg-[#ECEAE3] rounded-[24px] border border-[#DFDDD4] p-5 h-72 animate-pulse"
+            />
+          ))}
+        </div>
+      ) : items.length === 0 ? (
+        <div className="bg-[#ECEAE3] rounded-[28px] border border-[#DFDDD4] p-12 text-center space-y-2">
+          <h3 className="text-base font-bold text-[#1F2621]">
+            No unclaimed items match your filter
+          </h3>
+          <p className="text-xs text-[#606861] max-w-md mx-auto">
+            All matching items have either been returned to their verified owners or none match your search filter.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {items.map((item) => {
+            // Do not publicly expose whether another user has filed a claim ("Claim Pending")
+            const displayStatus = isAdmin ? item.status : 'Stored';
+            return (
               <div
-                key={clm._id}
-                className="bg-[#ECEAE3] rounded-[24px] border border-[#DFDDD4] p-5 flex flex-col justify-between space-y-4"
+                key={item._id}
+                className="bg-[#ECEAE3] rounded-[24px] border border-[#DFDDD4] p-4 flex flex-col justify-between transition hover:border-[#C5C3B8]"
               >
-                <div className="space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-xs font-semibold px-3 py-0.5 rounded-full bg-[#2C372F] text-[#F7F6F2]">
-                      {clm.claimCode}
-                    </span>
-                    <StatusChip status={clm.status} size="xs" />
-                  </div>
-
-                  <div>
-                    <h3 className="font-bold text-[#1F2621] text-base">
-                      {clm.foundItemId?.itemName || 'Found Item'}
-                    </h3>
-                    <p className="text-xs text-[#606861] font-mono">
-                      Item ID: {clm.foundItemId?.itemCode} ({new Date(clm.submittedAt).toLocaleDateString()})
-                    </p>
-                    <p className="text-xs text-[#353D37] mt-1">
-                      Claimant:{' '}
-                      <strong>{clm.claimantName || clm.claimantId?.name || 'Campus Student'}</strong>{' '}
-                      <span className="font-mono">
-                        ({clm.claimantUsn || clm.claimantId?.identifierCode || 'ID Verified'})
-                      </span>
-                    </p>
-                  </div>
-
-                  <div className="bg-[#F7F6F2] rounded-2xl p-3.5 border border-[#DFDDD4] text-xs space-y-1">
-                    <div className="text-[#606861] font-semibold">Submitted Proof</div>
-                    <p className="text-[#1F2621]">{clm.claimAnswers?.identifyingDetailAnswer}</p>
-                    {clm.claimAnswers?.serialOrContentsDetail && (
-                      <p className="text-[#58605A] font-mono text-[11px]">
-                        Detail: {clm.claimAnswers.serialOrContentsDetail}
-                      </p>
-                    )}
-                  </div>
-
-                  {clm.adminFeedbackToClaimant && (
-                    <div className="rounded-2xl p-3.5 border border-[#C9D1CD] bg-[#DDE6DF] text-[#233829] text-xs">
-                      <span className="font-bold block mb-0.5">Administrator Decision</span>
-                      {clm.adminFeedbackToClaimant}
-                    </div>
-                  )}
-
-                  {clm.status === 'More Information Required' && (
-                    <div className="space-y-2 pt-2">
-                      <input
-                        type="text"
-                        value={moreInfoAnswer[clm._id] || ''}
-                        onChange={(e) =>
-                          setMoreInfoAnswer((prev) => ({ ...prev, [clm._id]: e.target.value }))
-                        }
-                        placeholder="Provide requested additional proof..."
-                        className="w-full rounded-2xl border border-[#D5D3C8] bg-[#FBFBF9] px-3.5 py-2 text-xs"
+                <div>
+                  <div className="relative h-44 rounded-2xl bg-[#E2E0D6] overflow-hidden mb-4">
+                    {item.imageRefs?.[0]?.url ? (
+                      <img
+                        src={item.imageRefs[0].url}
+                        alt={item.itemName}
+                        className="w-full h-full object-cover"
                       />
-                      <button
-                        onClick={() => handleRespondMoreInfo(clm._id)}
-                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#2C372F] text-[#F7F6F2] text-xs font-semibold"
-                      >
-                        <Send className="w-3.5 h-3.5" />
-                        <span>Send Proof</span>
-                      </button>
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-[#687069] text-xs font-medium">
+                        No Reference Photo
+                      </div>
+                    )}
+                    <div className="absolute top-3 left-3 flex items-center gap-1.5">
+                      <span className="font-mono text-[11px] font-semibold px-3 py-1 rounded-full bg-[#FBFBF9]/90 text-[#1F2621] backdrop-blur-sm">
+                        {item.itemCode}
+                      </span>
+                      {item.isBatchStationery && (
+                        <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-[#2C372F]/90 text-[#F7F6F2]">
+                          Batch ({item.batchQuantity})
+                        </span>
+                      )}
                     </div>
-                  )}
+                    <div className="absolute top-3 right-3">
+                      <StatusChip status={displayStatus} size="xs" />
+                    </div>
+                  </div>
+
+                  <div className="px-1 space-y-2">
+                    <div className="flex items-center justify-between text-xs text-[#58605A] font-medium">
+                      <span>{item.category}</span>
+                      <span className="flex items-center gap-1">
+                        <Calendar className="w-3.5 h-3.5" />
+                        {new Date(item.foundAt).toLocaleDateString()}
+                      </span>
+                    </div>
+
+                    <h3 className="font-bold text-[#1F2621] text-base line-clamp-1">
+                      {item.itemName}
+                    </h3>
+                    <p className="text-xs text-[#58605A] line-clamp-2 leading-relaxed">
+                      {item.description}
+                    </p>
+
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {item.visibleAttributes?.colour && (
+                        <span className="px-2.5 py-1 rounded-full bg-[#F7F6F2] border border-[#DFDDD4] text-[#353D37] text-[11px] font-medium">
+                          {item.visibleAttributes.colour}
+                        </span>
+                      )}
+                      {item.visibleAttributes?.brand && (
+                        <span className="px-2.5 py-1 rounded-full bg-[#F7F6F2] border border-[#DFDDD4] text-[#353D37] text-[11px] font-medium">
+                          {item.visibleAttributes.brand}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
-                {['Approved', 'Handed Over'].includes(clm.status) && (
-                  <div className="pt-3 border-t border-[#DFDDD4] flex items-center justify-between">
-                    <div className="text-xs text-[#58605A]">
-                      Bin: <strong className="text-[#1F2621]">{clm.foundItemId?.storageLocation}</strong>
-                    </div>
+                <div className="px-1 pt-4 mt-4 border-t border-[#DFDDD4] space-y-3">
+                  <div className="flex items-center gap-1.5 text-xs text-[#4A544C]">
+                    <MapPin className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate">{item.foundLocation}</span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
                     <button
-                      onClick={() => setHandoverQrClaim(clm)}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#2C372F] hover:bg-[#1F2621] text-[#F7F6F2] text-xs font-semibold transition"
+                      type="button"
+                      onClick={() => setSelectedItemForClaim(item)}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-full bg-[#2C372F] hover:bg-[#1F2621] text-[#F7F6F2] text-xs font-semibold transition"
+                    >
+                      <ShieldCheck className="w-4 h-4" />
+                      <span>Claim This Item</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setQrModalItem(item)}
+                      className="p-2.5 rounded-full bg-[#F7F6F2] border border-[#DFDDD4] text-[#2C372F] hover:bg-[#E2E0D6] transition"
+                      title="View QR Custody Tag"
                     >
                       <QrCode className="w-4 h-4" />
-                      <span>Handover Pass</span>
                     </button>
                   </div>
-                )}
+                </div>
               </div>
-            ))}
-          </div>
-        )}
-      </section>
+            );
+          })}
+        </div>
+      )}
 
-      {claimModalContext && (
+      {selectedItemForClaim && (
         <ClaimModal
-          item={claimModalContext.item}
-          lostReportId={claimModalContext.lostReportId}
-          onClose={() => setClaimModalContext(null)}
+          item={selectedItemForClaim}
+          onClose={() => setSelectedItemForClaim(null)}
           onSuccess={() => {
-            setClaimModalContext(null);
-            loadData();
-            showToast('Ownership claim submitted');
+            setSelectedItemForClaim(null);
+            loadClaimableItems();
+            showToast('Ownership claim submitted confidentially to the Vault Administrator');
           }}
         />
       )}
 
-      {handoverQrClaim && (
+      {qrModalItem && (
         <QRTagModal
-          isOpen={Boolean(handoverQrClaim)}
-          onClose={() => setHandoverQrClaim(null)}
-          title={handoverQrClaim.foundItemId?.itemName || 'Approved Item'}
-          subtitle="Verified Ownership Pass"
-          code={handoverQrClaim.handoverPassCode || handoverQrClaim.claimCode}
-          mode="handover"
+          isOpen={Boolean(qrModalItem)}
+          onClose={() => setQrModalItem(null)}
+          title={qrModalItem.itemName}
+          subtitle={qrModalItem.category}
+          code={qrModalItem.itemCode}
+          mode="storage"
           metadata={[
-            { label: 'Claim Code', value: handoverQrClaim.claimCode },
+            { label: 'Found Location', value: qrModalItem.foundLocation },
+            { label: 'Found Date', value: new Date(qrModalItem.foundAt).toLocaleDateString() },
+            { label: 'Status', value: isAdmin ? qrModalItem.status : 'Stored' },
+            { label: 'Retention Class', value: qrModalItem.retentionClass },
             {
-              label: 'Claimant Name',
-              value: handoverQrClaim.claimantName || handoverQrClaim.claimantId?.name || 'Verified Claimant',
+              label: 'Storage Bin',
+              value: isAdmin ? qrModalItem.storageLocation : 'Protected Until Approval',
             },
-            {
-              label: 'USN / Campus ID',
-              value: handoverQrClaim.claimantUsn || handoverQrClaim.claimantId?.identifierCode || 'ID Verified',
-            },
-            { label: 'Item Code', value: handoverQrClaim.foundItemId?.itemCode },
-            { label: 'Status', value: handoverQrClaim.status },
-            { label: 'Collection Location', value: handoverQrClaim.foundItemId?.storageLocation },
           ]}
         />
       )}

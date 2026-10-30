@@ -216,7 +216,7 @@ export default function ReportLostPage() {
               onClick={() => navigate('/my-activity')}
               className="px-5 py-2.5 rounded-full bg-[#F7F6F2] hover:bg-[#E2E0D6] text-[#1F2621] text-xs font-bold transition"
             >
-              View Reports and Claims
+              Browse Claimable Items
             </button>
           </div>
         </div>
@@ -261,7 +261,10 @@ export default function ReportLostPage() {
                           <span className="text-xs font-semibold px-3 py-0.5 rounded-full bg-[#DDE6DF] text-[#233829] border border-[#B8CBBF]">
                             {cand.score}% Match ({cand.confidenceBand})
                           </span>
-                          <StatusChip status={item.status} size="xs" />
+                          <StatusChip
+                            status={item.status === 'Claim Pending' ? 'Stored' : item.status}
+                            size="xs"
+                          />
                         </div>
 
                         <h3 className="font-bold text-[#1F2621] text-base">{item.itemName}</h3>

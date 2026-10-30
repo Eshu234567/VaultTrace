@@ -1,5 +1,6 @@
 const express = require('express');
 const {
+  User,
   Claim,
   FoundItem,
   LostReport,
@@ -113,14 +114,17 @@ router.post('/', authenticate, async (req, res, next) => {
       note: `Ownership claim ${claimCode} submitted by ${resolvedName} (${resolvedUsn}). Disposal eligibility frozen.`,
     });
 
-    await Notification.create({
-      recipientId: req.user._id,
-      type: 'CLAIM_SUBMITTED',
-      title: `Claim Submitted: ${claimCode} for ${foundItem.itemName}`,
-      message: `Your claim (${claimCode}) for item ${foundItem.itemCode} is now in the Admin Verification Queue. You will be notified once reviewed.`,
-      relatedEntityType: 'Claim',
-      relatedEntityId: claim._id,
-    });
+    const adminUser = await User.findOne({ role: 'admin' });
+    if (adminUser) {
+      await Notification.create({
+        recipientId: adminUser._id,
+        type: 'CLAIM_SUBMITTED',
+        title: `New Claim Submitted: ${claimCode} (${resolvedName} - ${resolvedUsn})`,
+        message: `${resolvedName} (${resolvedUsn}) submitted ownership claim ${claimCode} for item ${foundItem.itemCode} (${foundItem.itemName}). Review in Admin Verification Queue.`,
+        relatedEntityType: 'Claim',
+        relatedEntityId: claim._id,
+      });
+    }
 
     await AuditLog.create({
       actorId: req.user._id,

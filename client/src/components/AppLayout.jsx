@@ -97,8 +97,8 @@ export default function AppLayout({ children }) {
               </NavLink>
 
               <NavLink to="/my-activity" onClick={() => setMobileMenuOpen(false)} className={sidebarLinkClass}>
-                <FileText className="w-4 h-4" />
-                <span>Reports and Claims</span>
+                <Shield className="w-4 h-4" />
+                <span>Claim</span>
               </NavLink>
 
               <NavLink to="/notifications" onClick={() => setMobileMenuOpen(false)} className={sidebarLinkClass}>
