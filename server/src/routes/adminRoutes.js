@@ -255,8 +255,13 @@ router.post(
       foundItem.returnedAt = now;
       foundItem.claimFreeze = false;
       foundItem.handoverDetails = {
-        recipientName: recipientName || claim.claimantId?.name || 'Verified Claimant',
-        recipientIdentifier: recipientIdentifier || claim.claimantId?.identifierCode || 'ID Verified',
+        recipientName:
+          recipientName || claim.claimantName || claim.claimantId?.name || 'Verified Claimant',
+        recipientIdentifier:
+          recipientIdentifier ||
+          claim.claimantUsn ||
+          claim.claimantId?.identifierCode ||
+          'ID Verified',
         verifiedByAdminId: req.user._id,
         handoverCondition: handoverCondition || 'Good / Verified Intact',
         handoverNotes: handoverNotes || 'Handed over at Campus Vault after checking ID card.',

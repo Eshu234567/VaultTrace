@@ -64,6 +64,7 @@ export default function ReportFoundPage() {
 
   const [submitting, setSubmitting] = useState(false);
   const [createdItemResult, setCreatedItemResult] = useState(null);
+  const [showQrModal, setShowQrModal] = useState(false);
 
   const toggleStationeryBatchMode = (enabled) => {
     setQuickStationeryBatchMode(enabled);
@@ -130,6 +131,7 @@ export default function ReportFoundPage() {
       });
 
       setCreatedItemResult(res.data);
+      setShowQrModal(true);
       await refreshUnread();
       showToast(`Found item ${res.data.item.itemCode} recorded`);
     } catch (err) {
@@ -159,12 +161,24 @@ export default function ReportFoundPage() {
 
           <div className="pt-4 flex flex-wrap items-center justify-center gap-3">
             <button
-              onClick={() => setCreatedItemResult(null)}
+              type="button"
+              onClick={() => setShowQrModal(true)}
+              className="px-5 py-2.5 rounded-full border border-[#D5D3C8] bg-[#FBFBF9] text-[#1F2621] text-xs font-semibold hover:bg-[#E2E0D6]"
+            >
+              View QR Tag
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowQrModal(false);
+                setCreatedItemResult(null);
+              }}
               className="px-5 py-2.5 rounded-full border border-[#D5D3C8] bg-[#FBFBF9] text-[#1F2621] text-xs font-semibold hover:bg-[#E2E0D6]"
             >
               Log Another Item
             </button>
             <button
+              type="button"
               onClick={() => navigate(isAdmin ? '/admin' : '/')}
               className="px-6 py-2.5 rounded-full bg-[#2C372F] text-[#F7F6F2] text-xs font-semibold hover:bg-[#1F2621]"
             >
@@ -174,8 +188,8 @@ export default function ReportFoundPage() {
         </div>
 
         <QRTagModal
-          isOpen={true}
-          onClose={() => {}}
+          isOpen={showQrModal}
+          onClose={() => setShowQrModal(false)}
           title={item.itemName}
           subtitle={item.category}
           code={item.itemCode}

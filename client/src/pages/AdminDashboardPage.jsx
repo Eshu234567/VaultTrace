@@ -157,9 +157,14 @@ export default function AdminDashboardPage() {
       await apiRequest(`/admin/claims/${handoverModalClaim._id}/handover`, {
         method: 'POST',
         body: JSON.stringify({
-          recipientName: recipientName || handoverModalClaim.claimantId?.name,
+          recipientName:
+            recipientName ||
+            handoverModalClaim.claimantName ||
+            handoverModalClaim.claimantId?.name,
           recipientIdentifier:
-            recipientIdentifier || handoverModalClaim.claimantId?.identifierCode,
+            recipientIdentifier ||
+            handoverModalClaim.claimantUsn ||
+            handoverModalClaim.claimantId?.identifierCode,
           handoverCondition,
         }),
       });
@@ -535,6 +540,14 @@ export default function AdminDashboardPage() {
                       </td>
                       <td className="py-3.5 px-4 whitespace-nowrap">
                         <StatusChip status={item.status} size="xs" />
+                        {item.status === 'Returned' && item.handoverDetails?.recipientName && (
+                          <div className="text-[11px] text-[#353D37] mt-1">
+                            To: <strong>{item.handoverDetails.recipientName}</strong>{' '}
+                            <span className="font-mono">
+                              ({item.handoverDetails.recipientIdentifier})
+                            </span>
+                          </div>
+                        )}
                       </td>
                       <td className="py-3.5 px-4 text-right whitespace-nowrap space-x-1.5">
                         {item.status === 'Pending Verification' && (
@@ -685,15 +698,29 @@ export default function AdminDashboardPage() {
                     <StatusChip status={clm.status} size="xs" />
                   </div>
                   <div className="text-xs text-[#58605A]">
-                    Submitted {new Date(clm.submittedAt).toLocaleDateString()}
+                    Claimant:{' '}
+                    <strong className="text-[#1F2621]">
+                      {clm.claimantName || clm.claimantId?.name || 'Student'}
+                    </strong>{' '}
+                    <span className="font-mono font-semibold text-[#2C372F]">
+                      ({clm.claimantUsn || clm.claimantId?.identifierCode || 'No USN'})
+                    </span>{' '}
+                    · Submitted {new Date(clm.submittedAt).toLocaleDateString()}
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                   <div className="bg-[#F7F6F2] border border-[#DFDDD4] rounded-2xl p-4 space-y-1.5">
                     <div className="font-bold text-[#353D37] uppercase tracking-wider text-[11px]">
-                      Submitted Proof Answers
+                      Claimant Identity and Proof Answers
                     </div>
+                    <p className="text-[#1F2621]">
+                      <strong>Name & USN:</strong>{' '}
+                      {clm.claimantName || clm.claimantId?.name || 'Student'}{' '}
+                      <span className="font-mono font-semibold">
+                        ({clm.claimantUsn || clm.claimantId?.identifierCode || 'N/A'})
+                      </span>
+                    </p>
                     <p className="text-[#1F2621] font-medium">
                       <strong>Identifying Detail:</strong> {clm.claimAnswers?.identifyingDetailAnswer}
                     </p>
@@ -771,14 +798,25 @@ export default function AdminDashboardPage() {
                       <button
                         onClick={() => {
                           setHandoverModalClaim(clm);
-                          setRecipientName(clm.claimantId?.name || '');
-                          setRecipientIdentifier(clm.claimantId?.identifierCode || '');
+                          setRecipientName(clm.claimantName || clm.claimantId?.name || '');
+                          setRecipientIdentifier(
+                            clm.claimantUsn || clm.claimantId?.identifierCode || ''
+                          );
                         }}
                         className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-[#2C372F] hover:bg-[#1F2621] text-[#F7F6F2] text-xs font-semibold transition"
                       >
                         <PackageCheck className="w-4 h-4" />
                         <span>Record Physical Handover</span>
                       </button>
+                    )}
+                    {clm.status === 'Handed Over' && clm.foundItemId?.handoverDetails && (
+                      <span className="text-xs text-[#233829] font-semibold">
+                        Returned to {clm.foundItemId.handoverDetails.recipientName} (
+                        <span className="font-mono">
+                          {clm.foundItemId.handoverDetails.recipientIdentifier}
+                        </span>
+                        )
+                      </span>
                     )}
                   </div>
                 </div>

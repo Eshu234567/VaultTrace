@@ -14,8 +14,14 @@ export default function QRTagModal({ isOpen, onClose, title, subtitle, code, met
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-      <div className="bg-[#F7F6F2] rounded-[28px] shadow-2xl border border-[#DFDDD4] max-w-md w-full overflow-hidden">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-[#F7F6F2] rounded-[28px] shadow-2xl border border-[#DFDDD4] max-w-md w-full overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="bg-[#2C372F] text-[#F7F6F2] px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <ShieldCheck className="w-5 h-5" />
@@ -27,6 +33,7 @@ export default function QRTagModal({ isOpen, onClose, title, subtitle, code, met
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
             className="text-[#C8D3C9] hover:text-white p-1 rounded-lg transition"
             aria-label="Close modal"
@@ -64,6 +71,7 @@ export default function QRTagModal({ isOpen, onClose, title, subtitle, code, met
 
           <div className="mt-6 flex items-center gap-3 w-full">
             <button
+              type="button"
               onClick={() => window.print()}
               className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full bg-[#2C372F] hover:bg-[#1F2621] text-[#F7F6F2] font-semibold text-xs transition"
             >
@@ -71,6 +79,7 @@ export default function QRTagModal({ isOpen, onClose, title, subtitle, code, met
               <span>Print Pass</span>
             </button>
             <button
+              type="button"
               onClick={onClose}
               className="px-5 py-2.5 rounded-full border border-[#D5D3C8] bg-[#FBFBF9] text-[#1F2621] hover:bg-[#E2E0D6] font-semibold text-xs transition"
             >

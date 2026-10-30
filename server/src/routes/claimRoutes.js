@@ -18,14 +18,26 @@ router.post('/', authenticate, async (req, res, next) => {
     const {
       foundItemId,
       lostReportId = null,
+      claimantName = '',
+      claimantUsn = '',
       claimAnswers = {},
       proofRefs = [],
     } = req.body;
+
+    const resolvedName = (claimantName || req.user.name || '').trim();
+    const resolvedUsn = (claimantUsn || req.user.identifierCode || '').trim().toUpperCase();
 
     if (!foundItemId || !claimAnswers.identifyingDetailAnswer) {
       return res.status(400).json({
         success: false,
         error: 'foundItemId and claimAnswers.identifyingDetailAnswer are required.',
+      });
+    }
+
+    if (!resolvedName || !resolvedUsn) {
+      return res.status(400).json({
+        success: false,
+        error: 'Your Full Name and USN / Campus ID are required to submit a claim.',
       });
     }
 
@@ -41,17 +53,17 @@ router.post('/', authenticate, async (req, res, next) => {
       });
     }
 
-    // Prevent duplicate active claim by the same user for the same item
+    // Prevent duplicate active claim by the same USN for the same item
     const existingUserClaim = await Claim.findOne({
       foundItemId: foundItem._id,
-      claimantId: req.user._id,
+      claimantUsn: resolvedUsn,
       status: { $in: ['Pending', 'More Information Required', 'Approved'] },
     });
 
     if (existingUserClaim) {
       return res.status(409).json({
         success: false,
-        error: `You already have an active claim (${existingUserClaim.claimCode}) for this item.`,
+        error: `An active claim (${existingUserClaim.claimCode}) already exists under USN ${resolvedUsn} for this item.`,
       });
     }
 
@@ -63,6 +75,8 @@ router.post('/', authenticate, async (req, res, next) => {
       foundItemId: foundItem._id,
       lostReportId: lostReportId || null,
       claimantId: req.user._id,
+      claimantName: resolvedName,
+      claimantUsn: resolvedUsn,
       claimAnswers: {
         identifyingDetailAnswer: claimAnswers.identifyingDetailAnswer.trim(),
         serialOrContentsDetail: claimAnswers.serialOrContentsDetail || '',
@@ -96,7 +110,7 @@ router.post('/', authenticate, async (req, res, next) => {
       eventType: 'CLAIM_SUBMITTED',
       fromStatus: prevItemStatus,
       toStatus: 'Claim Pending',
-      note: `Ownership claim ${claimCode} submitted by ${req.user.name} (${req.user.identifierCode}). Disposal eligibility frozen.`,
+      note: `Ownership claim ${claimCode} submitted by ${resolvedName} (${resolvedUsn}). Disposal eligibility frozen.`,
     });
 
     await Notification.create({

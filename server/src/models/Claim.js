@@ -33,6 +33,17 @@ const claimSchema = new mongoose.Schema(
       ref: 'User',
       required: [true, 'Claimant reference is required'],
     },
+    claimantName: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    claimantUsn: {
+      type: String,
+      uppercase: true,
+      trim: true,
+      default: '',
+    },
     // Restricted ownership verification answers - only claimant & admin can view
     claimAnswers: {
       identifyingDetailAnswer: {

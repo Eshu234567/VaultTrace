@@ -3,6 +3,8 @@ import { X, ShieldCheck, Lock, CheckCircle2 } from 'lucide-react';
 import { apiRequest } from '../services/api';
 
 export default function ClaimModal({ item, lostReportId = null, onClose, onSuccess }) {
+  const [claimantName, setClaimantName] = useState('');
+  const [claimantUsn, setClaimantUsn] = useState('');
   const [identifyingDetailAnswer, setIdentifyingDetailAnswer] = useState('');
   const [serialOrContentsDetail, setSerialOrContentsDetail] = useState('');
   const [additionalContext, setAdditionalContext] = useState('');
@@ -20,6 +22,10 @@ export default function ClaimModal({ item, lostReportId = null, onClose, onSucce
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    if (!claimantName.trim() || !claimantUsn.trim()) {
+      setError('Please enter your Full Name and USN / Campus ID for identity verification.');
+      return;
+    }
     if (!identifyingDetailAnswer.trim()) {
       setError('Please provide the required ownership verification details.');
       return;
@@ -32,6 +38,8 @@ export default function ClaimModal({ item, lostReportId = null, onClose, onSucce
         body: JSON.stringify({
           foundItemId: item._id,
           lostReportId,
+          claimantName: claimantName.trim(),
+          claimantUsn: claimantUsn.trim().toUpperCase(),
           claimAnswers: {
             identifyingDetailAnswer: identifyingDetailAnswer.trim(),
             serialOrContentsDetail: serialOrContentsDetail.trim(),
@@ -85,6 +93,36 @@ export default function ClaimModal({ item, lostReportId = null, onClose, onSucce
               {error}
             </div>
           )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-[#353D37] mb-1">
+                Full Name
+              </label>
+              <input
+                type="text"
+                required
+                value={claimantName}
+                onChange={(e) => setClaimantName(e.target.value)}
+                placeholder="e.g., Aarav Sharma"
+                className="w-full rounded-2xl border border-[#D5D3C8] bg-[#FBFBF9] px-3.5 py-2.5 text-xs focus:outline-none focus:border-[#2C372F]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-[#353D37] mb-1">
+                USN / Campus ID
+              </label>
+              <input
+                type="text"
+                required
+                value={claimantUsn}
+                onChange={(e) => setClaimantUsn(e.target.value.toUpperCase())}
+                placeholder="e.g., 1RV23IS014"
+                className="w-full rounded-2xl border border-[#D5D3C8] bg-[#FBFBF9] px-3.5 py-2.5 text-xs font-mono uppercase focus:outline-none focus:border-[#2C372F]"
+              />
+            </div>
+          </div>
 
           <div>
             <label className="block text-xs font-semibold text-[#353D37] mb-1">

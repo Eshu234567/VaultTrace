@@ -251,6 +251,13 @@ export default function MyActivityPage() {
                     <p className="text-xs text-[#606861] font-mono">
                       Item ID: {clm.foundItemId?.itemCode} ({new Date(clm.submittedAt).toLocaleDateString()})
                     </p>
+                    <p className="text-xs text-[#353D37] mt-1">
+                      Claimant:{' '}
+                      <strong>{clm.claimantName || clm.claimantId?.name || 'Campus Student'}</strong>{' '}
+                      <span className="font-mono">
+                        ({clm.claimantUsn || clm.claimantId?.identifierCode || 'ID Verified'})
+                      </span>
+                    </p>
                   </div>
 
                   <div className="bg-[#F7F6F2] rounded-2xl p-3.5 border border-[#DFDDD4] text-xs space-y-1">
@@ -335,6 +342,14 @@ export default function MyActivityPage() {
           mode="handover"
           metadata={[
             { label: 'Claim Code', value: handoverQrClaim.claimCode },
+            {
+              label: 'Claimant Name',
+              value: handoverQrClaim.claimantName || handoverQrClaim.claimantId?.name || 'Verified Claimant',
+            },
+            {
+              label: 'USN / Campus ID',
+              value: handoverQrClaim.claimantUsn || handoverQrClaim.claimantId?.identifierCode || 'ID Verified',
+            },
             { label: 'Item Code', value: handoverQrClaim.foundItemId?.itemCode },
             { label: 'Status', value: handoverQrClaim.status },
             { label: 'Collection Location', value: handoverQrClaim.foundItemId?.storageLocation },
