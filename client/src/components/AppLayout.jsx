@@ -178,12 +178,21 @@ export default function AppLayout({ children }) {
               </Link>
 
               {isAdmin ? (
-                <Link
-                  to="/admin"
-                  className="px-4 py-2 rounded-full bg-[#2C372F] text-[#F7F6F2] text-xs font-semibold hover:bg-[#1F2621] transition"
-                >
-                  Admin Console
-                </Link>
+                <div className="flex items-center gap-2">
+                  <Link
+                    to="/admin"
+                    className="px-4 py-2 rounded-full bg-[#2C372F] text-[#F7F6F2] text-xs font-semibold hover:bg-[#1F2621] transition"
+                  >
+                    Admin Console
+                  </Link>
+                  <button
+                    onClick={handleExitAdmin}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#ECEAE3] text-[#2C372F] border border-[#D8D6CC] text-xs font-semibold hover:bg-[#E2E0D6] transition"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span>Log Out</span>
+                  </button>
+                </div>
               ) : (
                 <Link
                   to="/login"

@@ -71,22 +71,19 @@ function computePairScore(lostReport, foundItem, locationZoneMap = {}) {
       attrPoints += 9;
       matchedFields.push(`Colour (${foundItem.visibleAttributes.colour})`);
     }
-  } else {
-    // Missing values do not count as strong mismatches
-    attrPoints += 3;
   }
 
   const lostMat = (lostReport.attributes?.material || '').toLowerCase().trim();
   const foundMat = (foundItem.visibleAttributes?.material || '').toLowerCase().trim();
   if (lostMat && foundMat && (lostMat === foundMat || lostMat.includes(foundMat))) {
-    attrPoints += 3;
+    attrPoints += 4;
     matchedFields.push(`Material (${foundItem.visibleAttributes.material})`);
   }
 
   const lostSize = (lostReport.attributes?.size || '').toLowerCase().trim();
   const foundSize = (foundItem.visibleAttributes?.size || '').toLowerCase().trim();
   if (lostSize && foundSize && lostSize === foundSize) {
-    attrPoints += 3;
+    attrPoints += 2;
     matchedFields.push(`Size (${foundItem.visibleAttributes.size})`);
   }
   breakdown.attributeScore = Math.min(15, attrPoints);
@@ -104,8 +101,6 @@ function computePairScore(lostReport, foundItem, locationZoneMap = {}) {
     } else if (lostZone && foundZone && lostZone === foundZone) {
       breakdown.locationScore = 10;
       matchedFields.push(`Same Campus Zone (${foundZone})`);
-    } else {
-      breakdown.locationScore = 3;
     }
   }
 
@@ -115,9 +110,8 @@ function computePairScore(lostReport, foundItem, locationZoneMap = {}) {
     const foundTime = new Date(foundItem.foundAt).getTime();
     const diffDays = Math.abs(foundTime - lostTime) / (1000 * 60 * 60 * 24);
 
-    // If found way before it was lost (> 3 days prior), lower score
     if (foundTime < lostTime - 3 * 86400000) {
-      breakdown.dateScore = 2;
+      breakdown.dateScore = 0;
     } else if (diffDays <= 1.5) {
       breakdown.dateScore = 15;
       matchedFields.push('Same/Next Day Window');
@@ -125,10 +119,8 @@ function computePairScore(lostReport, foundItem, locationZoneMap = {}) {
       breakdown.dateScore = 12;
       matchedFields.push('Within 4 Days');
     } else if (diffDays <= 10) {
-      breakdown.dateScore = 8;
+      breakdown.dateScore = 6;
       matchedFields.push('Within 10 Days');
-    } else if (diffDays <= 21) {
-      breakdown.dateScore = 4;
     }
   }
 
@@ -140,11 +132,9 @@ function computePairScore(lostReport, foundItem, locationZoneMap = {}) {
       breakdown.brandScore = 10;
       matchedFields.push(`Brand (${foundItem.visibleAttributes.brand})`);
     }
-  } else if (!lostBrand && !foundBrand) {
-    breakdown.brandScore = 3;
   }
 
-  const totalScore = Math.min(
+  let totalScore = Math.min(
     100,
     breakdown.categoryScore +
       breakdown.keywordScore +
@@ -153,6 +143,14 @@ function computePairScore(lostReport, foundItem, locationZoneMap = {}) {
       breakdown.dateScore +
       breakdown.brandScore
   );
+
+  // If the items do not share the same category AND have zero keyword/brand overlap, cap score below notification threshold
+  if (breakdown.categoryScore === 0 && breakdown.keywordScore === 0 && breakdown.brandScore === 0) {
+    totalScore = Math.min(totalScore, 25);
+  } else if (breakdown.keywordScore === 0 && breakdown.brandScore === 0) {
+    // Same category & location/date, but different item names/brands -> cap at Possible Match (max 62%), never High Match
+    totalScore = Math.min(totalScore, 62);
+  }
 
   let confidenceBand = 'Low Match';
   if (totalScore >= 75) {

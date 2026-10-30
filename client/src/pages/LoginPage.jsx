@@ -5,8 +5,8 @@ import { useAuth } from '../context/AuthContext';
 
 export default function LoginPage() {
   const { isAdmin, loginAsAdmin, exitAdminMode } = useAuth();
-  const [email, setEmail] = useState('admin@vaulttrace.edu');
-  const [password, setPassword] = useState('VaultPass@123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -90,6 +90,7 @@ export default function LoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter administrator email"
               className="w-full rounded-2xl border border-[#D5D3C8] bg-[#FBFBF9] px-4 py-3 text-xs text-[#1F2621] focus:outline-none focus:border-[#2C372F]"
             />
           </div>
@@ -103,11 +104,9 @@ export default function LoginPage() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter password"
               className="w-full rounded-2xl border border-[#D5D3C8] bg-[#FBFBF9] px-4 py-3 text-xs text-[#1F2621] focus:outline-none focus:border-[#2C372F]"
             />
-            <span className="block text-[11px] text-[#687069] mt-1">
-              Default administrator credentials are pre-filled for demonstration.
-            </span>
           </div>
 
           <button
