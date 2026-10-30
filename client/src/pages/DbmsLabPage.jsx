@@ -125,7 +125,10 @@ export default function DbmsLabPage() {
 
   const handleTestConstraint = async (testType) => {
     try {
-      const res = await fetch('/api/dbms-lab/test-constraint', {
+      const apiBase = import.meta.env.VITE_API_URL
+        ? `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/api`
+        : '/api';
+      const res = await fetch(`${apiBase}/dbms-lab/test-constraint`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
