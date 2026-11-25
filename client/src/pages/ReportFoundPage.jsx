@@ -9,6 +9,7 @@ import {
 import { apiRequest } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import QRTagModal from '../components/QRTagModal';
+import CameraObjectScanner from '../components/CameraObjectScanner';
 
 const CATEGORIES = [
   'Electronics',
@@ -90,6 +91,21 @@ export default function ReportFoundPage() {
     setRetentionClass(val);
     const match = RETENTION_POLICIES.find((p) => p.value === val);
     if (match) setRetentionDays(match.days);
+  };
+
+  const handleVisionDetected = (vision) => {
+    setItemName(vision.itemName);
+    setCategory(vision.category);
+    setColour(vision.colour);
+    setSize(vision.size);
+    setMaterial(vision.material);
+    setDescription(vision.description);
+    if (vision.imageDataUrl) {
+      setImageUrl(vision.imageDataUrl);
+    }
+    showToast(
+      `📷 AI Vision identified ${vision.itemName} (${vision.confidencePct}% confidence) and populated intake form`
+    );
   };
 
   const handleSubmit = async (e) => {
@@ -233,6 +249,8 @@ export default function ReportFoundPage() {
           <span>{quickStationeryBatchMode ? 'Stationery Batch Mode Active' : 'Stationery Batch Intake'}</span>
         </button>
       </div>
+
+      <CameraObjectScanner mode="found" onDetected={handleVisionDetected} />
 
       <form
         onSubmit={handleSubmit}

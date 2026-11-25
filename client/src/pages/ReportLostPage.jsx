@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Sparkles,
   CheckCircle2,
   ShieldCheck,
 } from 'lucide-react';
@@ -9,6 +8,7 @@ import { apiRequest } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import StatusChip from '../components/StatusChip';
 import ClaimModal from '../components/ClaimModal';
+import CameraObjectScanner from '../components/CameraObjectScanner';
 
 const CATEGORIES = [
   'Electronics',
@@ -134,20 +134,22 @@ export default function ReportLostPage() {
     );
   };
 
-  const fillQuickDemoPreset = () => {
-    setItemName('Apple AirPods Pro (2nd Gen) Charging Case');
-    setCategory('Electronics');
-    setBrand('Apple');
-    setColour('White / Charcoal');
-    setSize('Pocket / Small');
-    setMaterial('Plastic / Silicone');
-    setSelectedTags(['airpods', 'magsafe', 'sticker']);
-    setLastSeenLocation('ISE Department Block - Lab 302');
-    setDistinctiveMarks('Mini Batman sticker under the charcoal silicone cover');
-    setDescription(
-      'Lost my white Apple AirPods Pro 2nd Gen inside a matte charcoal silicone cover during afternoon lab.'
+  const handleVisionDetected = (vision) => {
+    setItemName(vision.itemName);
+    setCategory(vision.category);
+    setColour(vision.colour);
+    setSize(vision.size);
+    setMaterial(vision.material);
+    if (Array.isArray(vision.tags) && vision.tags.length > 0) {
+      setSelectedTags(vision.tags);
+    }
+    setDescription(vision.description);
+    if (vision.imageDataUrl) {
+      setImageUrl(vision.imageDataUrl);
+    }
+    showToast(
+      `📷 AI Vision identified ${vision.itemName} (${vision.confidencePct}% confidence) and populated form`
     );
-    showToast('Sample report details filled');
   };
 
   const handleSubmit = async (e) => {
@@ -330,18 +332,10 @@ export default function ReportLostPage() {
         <div>
           <h1 className="text-2xl font-bold text-[#1F2621]">Report a Lost Item</h1>
           <p className="text-xs text-[#606861]">
-            Enter item attributes and last known location to search the vault inventory.
+            Use the 📷 AI camera scanner to auto-populate item characteristics or enter attributes below.
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={fillQuickDemoPreset}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#ECEAE3] text-[#2C372F] border border-[#DFDDD4] text-xs font-semibold hover:bg-[#E2E0D6] transition"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Fill Sample Data</span>
-          </button>
           <button
             type="button"
             onClick={saveDraft}
@@ -351,6 +345,8 @@ export default function ReportLostPage() {
           </button>
         </div>
       </div>
+
+      <CameraObjectScanner mode="lost" onDetected={handleVisionDetected} />
 
       <form
         onSubmit={handleSubmit}
@@ -568,13 +564,14 @@ export default function ReportLostPage() {
 
             <div>
               <label className="block text-xs font-semibold text-[#353D37] mb-1.5">
-                Optional Reference Image URL
+                📷 Attached Photo / Image Reference
               </label>
               <input
-                type="url"
-                value={imageUrl}
+                type="text"
+                value={imageUrl.startsWith('data:image') ? '📷 Captured Camera Photo Attached' : imageUrl}
                 onChange={(e) => setImageUrl(e.target.value)}
-                placeholder="https://images.unsplash.com/..."
+                readOnly={imageUrl.startsWith('data:image')}
+                placeholder="https://images.unsplash.com/... or use 📷 scanner above"
                 className="w-full rounded-2xl border border-[#D5D3C8] bg-[#FBFBF9] px-3.5 py-2.5 text-xs focus:outline-none focus:border-[#2C372F]"
               />
             </div>
