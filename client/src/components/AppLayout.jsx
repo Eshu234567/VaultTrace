@@ -8,7 +8,6 @@ import {
   Bell,
   FileText,
   Sliders,
-  Database,
   Lock,
   LogOut,
   Menu,
@@ -122,11 +121,6 @@ export default function AppLayout({ children }) {
                   <span>Admin Console</span>
                 </NavLink>
               )}
-
-              <NavLink to="/dbms-lab" onClick={() => setMobileMenuOpen(false)} className={sidebarLinkClass}>
-                <Database className="w-4 h-4" />
-                <span>Database Lab</span>
-              </NavLink>
             </nav>
           </div>
 

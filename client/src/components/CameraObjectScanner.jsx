@@ -130,9 +130,6 @@ export default function CameraObjectScanner({ onDetected, mode = 'lost' }) {
     <div className="bg-[#F7F6F2] rounded-[24px] border-2 border-dashed border-[#B8CBBF] p-5 sm:p-6 space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="space-y-1">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#DDE6DF] text-[#233829] text-[11px] font-bold uppercase tracking-wider">
-            <span>📷 AI Image-Based Object Recognition</span>
-          </div>
           <h3 className="text-base font-bold text-[#1F2621]">
             Snap or Upload Item Photo to Auto-Fill Form
           </h3>
